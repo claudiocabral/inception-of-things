@@ -1,0 +1,17 @@
+- name: import playbook
+  import_playbook: "setup_server.yml"
+
+- hosts: workers
+  become: yes
+  gather_facts: true
+  tasks:
+    - name: Download k3s install script
+      get_url:
+        url: https://get.k3s.io 
+        dest: "~/k3s_install.sh"
+        mode: a+x
+    - name: Join the cluster through the controller node's private IP
+      environment:
+        K3S_URL: "https://{{ hostvars['ccabral']['private_ip'] }}:6443"
+        K3S_TOKEN: "{{ hostvars['ccabral'].node_token }}" 
+      shell: curl https://get.k3s.io  | sh -
