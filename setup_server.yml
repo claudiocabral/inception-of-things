@@ -1,13 +1,11 @@
 - hosts: controller
   become: yes
   gather_facts: false
+  roles:
+    - k3s
   tasks:
-    - name: install k3s
-      shell: curl https://get.k3s.io  | sh -
-    - name: Get node token
-      environment:
-        INSTALL_K3S_EXEC: "--flannel-iface=eth1 --disable traefik"
-      shell: cat /var/lib/rancher/k3s/server/node-token 
+    - name: Read node-token
+      shell: cat /var/lib/rancher/k3s/server/node-token
       register: node_token_output
     - name: Add node_token to facts
       ansible.builtin.set_fact:
