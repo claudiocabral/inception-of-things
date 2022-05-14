@@ -8,12 +8,4 @@
         state: present
 
 - name: import playbook
-  import_playbook: "setup_server.yml"
-
-- hosts: workers
-  become: yes
-  environment:
-    K3S_URL: "https://{{ hostvars['ccabral']['private_ip'] }}:6443"
-    K3S_TOKEN: "{{ hostvars['ccabral'].node_token }}" 
-  roles:
-    - k3s
+  import_playbook: "setup_worker.yml"
