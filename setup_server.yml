@@ -1,8 +1,4 @@
 - hosts: controller
-  tasks:
-    - name: import Package Provisioning
-      import_tasks: "install_packages.yml"
-- hosts: controller
   become: yes
   gather_facts: false
   environment:

@@ -1,53 +1,54 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-Vagrant.configure("2") do |config|
-  config.vm.box = "centos/7"
-  ccabral_ip = "192.168.42.110"
-  config.vm.define "ccabral" do |instance|
-    instance.vm.hostname = "ccabralS"
-    instance.vm.provider "virtualbox" do |v|
-      v.memory = 512
-      v.cpus = 1
-      v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
-      v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
-      v.customize ["modifyvm", :id, "--name", "ccabralS"]
-    end
-    instance.vm.network "private_network", ip: ccabral_ip
-    instance.vm.provision "ansible" do |ansible|
-      ansible.limit = "controller"
-      ansible.playbook = "setup_server.yml"
-      ansible.groups = {
-        "controller" => [ "ccabral" ],
-      }
-      ansible.host_vars = {
-        "ccabral" => { "private_ip" => ccabral_ip }
-      }
-    end
+NUMBER_OF_WORKERS = 3
+ControllerIP = "192.168.56.110"
+Machines = {
+  "Controllers" => [
+    {
+      "hostname" => "ccabral",
+      "private_ip" => ControllerIP
+    },
+  ],
+  "Workers" => (1..NUMBER_OF_WORKERS).map do |i|
+    {
+      "hostname" => "worker-%03u" % i,
+      "private_ip" => "192.168.56.%u" % (110 + i),
+    }
   end
-  NUMBER_OF_WORKERS = 1
-  (1..NUMBER_OF_WORKERS).each do |id|
-    worker_name = "worker-0#{id}"
-    config.vm.define worker_name do |instance|
-      instance.vm.hostname = worker_name + "-SW"
-      instance.vm.network "private_network", ip: "192.168.42.111"
-      instance.vm.provider "virtualbox" do |v|
-        v.memory = 512
-        v.cpus = 1
-        v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
-        v.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
-        v.customize ["modifyvm", :id, "--name", instance.vm.hostname ]
-      end
-      instance.vm.provision "ansible" do |ansible|
-        ansible.limit = "all"
-        ansible.playbook = "setup_worker.yml"
-        ansible.groups = {
-          "controller" => [ "ccabral" ],
-          "workers" => [ worker_name ]
-        }
-        ansible.host_vars = {
-          "ccabral" => { "private_ip" => ccabral_ip }
-        }
+}
+
+NUMBER_OF_MACHINES = Machines.map { |key, group| group.length() }.sum(0)
+
+i = 0
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/stream8"
+  config.vm.box_version = "20210210.0"
+  Machines.each do |groupname, group|
+    group.each do |machine|
+      i = i + 1
+      config.vm.define machine["hostname"] do |instance|
+        instance.vm.hostname = machine["hostname"]
+        instance.vm.provider "virtualbox" do |v|
+          v.memory = 1024
+          v.cpus = 2
+          v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
+          v.customize ["modifyvm", :id, "--name", machine["hostname"]]
+        end
+        instance.vm.network "private_network", ip: machine["private_ip"]
+        if (i == NUMBER_OF_MACHINES)
+          instance.vm.provision "ansible" do |ansible|
+            ansible.limit = "all"
+            ansible.playbook = "playbook.yml"
+            ansible.groups = {
+              "controller" => Machines["Controllers"].map { |x| x["hostname"] },
+              "workers" => Machines["Workers"].map { |x| x["hostname"] }
+            }
+            ansible.host_vars = {
+              "ccabral" => { "private_ip" => ControllerIP }
+            }
+          end
+        end
       end
     end
   end

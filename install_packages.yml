@@ -1,4 +1,4 @@
 - name: Install yum packages
-  yum:
+  dnf:
     name: "net-tools,git,tar"
     state: present

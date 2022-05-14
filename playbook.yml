@@ -1,11 +1,11 @@
-- hosts: all
+- hosts: workers
   become: yes
-  gather_facts: false
   tasks:
-    - name: Install yum packages
-      yum:
-        name: "net-tools,git,tar"
-        state: present
+    - name: Import Package Provisioning
+      import_tasks: "install_packages.yml"
+
+- name: import playbook
+  import_playbook: "setup_server.yml"
 
 - name: import playbook
   import_playbook: "setup_worker.yml"

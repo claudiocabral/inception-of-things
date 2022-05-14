@@ -1,7 +1,21 @@
 - name: Download k3s install script
   get_url:
     url: https://get.k3s.io 
-    dest: "~/k3s_install.sh"
+    dest: "/tmp/k3s_install.sh"
     mode: a+x
 - name: Install k3s
-  shell: "~/k3s_install.sh"
+  shell: "/tmp/k3s_install.sh"
+- name: Download Helm install script
+  get_url:
+    url: https://get.helm.sh/helm-v3.8.2-linux-amd64.tar.gz
+    checksum: sha256:6cb9a48f72ab9ddfecab88d264c2f6508ab3cd42d9c09666be16a7bf006bed7b
+    dest: /tmp/helm.tar.gz
+    mode: a+x
+- name: Extract Helm
+  unarchive:
+    src: /tmp/helm.tar.gz
+    dest: /tmp/helm
+- name: Add helm to /usr/bin
+  copy:
+    src: /tmp/helm/linux-amd64/helm
+    dest: /usr/bin/helm
