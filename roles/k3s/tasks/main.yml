@@ -14,8 +14,11 @@
 - name: Extract Helm
   unarchive:
     src: /tmp/helm.tar.gz
-    dest: /tmp/helm
+    dest: /tmp
+    remote_src: yes
 - name: Add helm to /usr/bin
   copy:
-    src: /tmp/helm/linux-amd64/helm
+    src: /tmp/linux-amd64/helm
     dest: /usr/bin/helm
+    remote_src: yes
+    mode: a+x
