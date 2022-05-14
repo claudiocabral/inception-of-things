@@ -27,6 +27,7 @@ Vagrant.configure("2") do |config|
   Machines.each do |groupname, group|
     group.each do |machine|
       i = i + 1
+      index = i
       config.vm.define machine["hostname"] do |instance|
         instance.vm.hostname = machine["hostname"]
         instance.vm.provider "virtualbox" do |v|
@@ -36,7 +37,7 @@ Vagrant.configure("2") do |config|
           v.customize ["modifyvm", :id, "--name", machine["hostname"]]
         end
         instance.vm.network "private_network", ip: machine["private_ip"]
-        if (i == NUMBER_OF_MACHINES)
+        if index == NUMBER_OF_MACHINES
           instance.vm.provision "ansible" do |ansible|
             ansible.limit = "all"
             ansible.playbook = "playbook.yml"
