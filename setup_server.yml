@@ -3,6 +3,26 @@
   gather_facts: false
   environment:
     K3S_EXTERNAL_IP: "{{ hostvars['ccabral']['private_ip'] }}"
-    INSTALL_K3S_EXEC: "--flannel-iface eth1 --no-deploy traefik"
+    INSTALL_K3S_EXEC: "--flannel-iface eth1"
   roles:
     - k3s
+  tasks:
+    - name: Fetch config file
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ./
+        flat: true
+    - name: Add a repository
+      kubernetes.core.helm_repository:
+        name: prometheus-community
+        repo_url: https://prometheus-community.github.io/helm-charts
+    - name: test collection
+      become: true
+      kubernetes.core.helm:
+        update_repo_cache: true
+        name: test
+        binary_path: /usr/bin/helm
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        chart_ref: prometheus-community/prometheus
+        release_namespace: monitoring
+        create_namespace: true
