@@ -18,12 +18,18 @@ Machines = {
   end
 }
 
+HOST_VARS = [
+  Machines["Controllers"].map { |x| { x["hostname"] => x} },
+  Machines["Workers"].map { |x| { x["hostname"] => x} },
+].flatten.reduce({}, :merge)
+
 NUMBER_OF_MACHINES = Machines.map { |key, group| group.length() }.sum(0)
 
 i = 0
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/stream8"
   config.vm.box_version = "20210210.0"
+  config.vm.synced_folder '.', '/vagrant', disabled: true
   Machines.each do |groupname, group|
     group.each do |machine|
       i = i + 1
@@ -34,9 +40,8 @@ Vagrant.configure("2") do |config|
           v.memory = 1024
           v.cpus = 2
           v.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
-          v.customize ["modifyvm", :id, "--name", machine["hostname"]]
         end
-        instance.vm.network "private_network", ip: machine["private_ip"]
+        instance.vm.network "private_network", ip: machine["private_ip"], hostname: true
         if index == NUMBER_OF_MACHINES
           instance.vm.provision "ansible" do |ansible|
             ansible.limit = "all"
@@ -45,9 +50,7 @@ Vagrant.configure("2") do |config|
               "controller" => Machines["Controllers"].map { |x| x["hostname"] },
               "workers" => Machines["Workers"].map { |x| x["hostname"] }
             }
-            ansible.host_vars = {
-              "ccabral" => { "private_ip" => ControllerIP }
-            }
+            ansible.host_vars = HOST_VARS
           end
         end
       end
