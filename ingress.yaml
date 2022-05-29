@@ -1,0 +1,55 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: html-1-route
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: PathPrefix(`/html-1`)
+    middlewares:
+      - name: stripprefix
+    kind: Rule
+    services:
+    - name: html-1-apache
+      port: 80
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: html-2-route
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: PathPrefix(`/html-2`)
+    middlewares:
+      - name: stripprefix
+    kind: Rule
+    services:
+    - name: html-2-nginx
+      port: 80
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`traefik.udio.co`)
+      kind: Rule
+      services:
+        - name: api@internal
+          kind: TraefikService
+---
+# Strip prefix /foobar and /fiibar
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix
+spec:
+  stripPrefixRegex:
+    regex:
+      - /html-[0-9]+
