@@ -15,5 +15,64 @@
   environment:
     K3S_URL: "https://{{ hostvars['ccabral']['private_ip'] }}:6443"
     K3S_TOKEN: "{{ hostvars['ccabral']['node_token'] }}"
+    INSTALL_K3S_EXEC: "--flannel-iface eth1"
   roles:
     - k3s
+
+- hosts: controller
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: Register html_1_config
+      become: false
+      ignore_errors: yes
+      local_action:
+        module: ansible.builtin.shell
+        cmd: 'kubectl get configmaps html-1'
+      register: html_1_config
+    - name: Create mapped file html-1
+      become: false
+      local_action:
+        module: ansible.builtin.shell
+        cmd: 'kubectl create configmap html-1 --from-file files/html-1/index.html'
+      when: html_1_config.rc != 0
+    - name: Serve website 1
+      become: true
+      kubernetes.core.helm:
+        update_repo_cache: true
+        name: html-1
+        binary_path: /usr/bin/helm
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        chart_ref: bitnami/apache
+        release_namespace: default
+        values:
+          htdocsConfigMap: html-1
+          service:
+            type: ClusterIP
+    - name: Register html_2_config
+      become: false
+      ignore_errors: yes
+      local_action:
+        module: ansible.builtin.shell
+        cmd: 'kubectl get configmaps html-2'
+      register: html_2_config
+    - name: Create mapped file html-2
+      become: false
+      local_action:
+        module: ansible.builtin.shell
+        cmd: 'kubectl create configmap html-2 --from-file files/html-2/index.html'
+      when: html_2_config.rc != 0
+    - name: Serve website 2
+      become: true
+      kubernetes.core.helm:
+        update_repo_cache: true
+        name: html-2
+        binary_path: /usr/bin/helm
+        kubeconfig: /etc/rancher/k3s/k3s.yaml
+        chart_ref: bitnami/nginx
+        release_namespace: default
+        values:
+          staticSiteConfigmap: html-2
+          replicaCount: 3
+          service:
+            type: ClusterIP
